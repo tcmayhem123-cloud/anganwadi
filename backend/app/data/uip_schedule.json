@@ -1,0 +1,265 @@
+{
+  "version": "MoHFW_UIP_2024",
+  "schedule": [
+    {
+      "code": "BCG",
+      "name": "BCG",
+      "dose_no": 1,
+      "target_days": 0,
+      "window_start": 0,
+      "window_end": 365,
+      "category": "Birth",
+      "mandatory": true
+    },
+    {
+      "code": "OPV_0",
+      "name": "Oral Polio Vaccine 0",
+      "dose_no": 1,
+      "target_days": 0,
+      "window_start": 0,
+      "window_end": 15,
+      "category": "Birth",
+      "mandatory": true
+    },
+    {
+      "code": "HEPB_0",
+      "name": "Hepatitis B Birth Dose",
+      "dose_no": 1,
+      "target_days": 0,
+      "window_start": 0,
+      "window_end": 1,
+      "category": "Birth",
+      "mandatory": true
+    },
+    {
+      "code": "OPV_1",
+      "name": "Oral Polio Vaccine 1",
+      "dose_no": 1,
+      "target_days": 42,
+      "window_start": 42,
+      "window_end": 70,
+      "category": "6 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "PENTA_1",
+      "name": "Pentavalent 1",
+      "dose_no": 1,
+      "target_days": 42,
+      "window_start": 42,
+      "window_end": 70,
+      "category": "6 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "ROTA_1",
+      "name": "Rotavirus 1",
+      "dose_no": 1,
+      "target_days": 42,
+      "window_start": 42,
+      "window_end": 70,
+      "category": "6 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "FIPV_1",
+      "name": "Fractional IPV 1",
+      "dose_no": 1,
+      "target_days": 42,
+      "window_start": 42,
+      "window_end": 70,
+      "category": "6 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "PCV_1",
+      "name": "Pneumococcal 1",
+      "dose_no": 1,
+      "target_days": 42,
+      "window_start": 42,
+      "window_end": 70,
+      "category": "6 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "OPV_2",
+      "name": "Oral Polio Vaccine 2",
+      "dose_no": 2,
+      "target_days": 70,
+      "window_start": 70,
+      "window_end": 98,
+      "category": "10 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "PENTA_2",
+      "name": "Pentavalent 2",
+      "dose_no": 2,
+      "target_days": 70,
+      "window_start": 70,
+      "window_end": 98,
+      "category": "10 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "ROTA_2",
+      "name": "Rotavirus 2",
+      "dose_no": 2,
+      "target_days": 70,
+      "window_start": 70,
+      "window_end": 98,
+      "category": "10 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "OPV_3",
+      "name": "Oral Polio Vaccine 3",
+      "dose_no": 3,
+      "target_days": 98,
+      "window_start": 98,
+      "window_end": 126,
+      "category": "14 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "PENTA_3",
+      "name": "Pentavalent 3",
+      "dose_no": 3,
+      "target_days": 98,
+      "window_start": 98,
+      "window_end": 126,
+      "category": "14 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "ROTA_3",
+      "name": "Rotavirus 3",
+      "dose_no": 3,
+      "target_days": 98,
+      "window_start": 98,
+      "window_end": 126,
+      "category": "14 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "FIPV_2",
+      "name": "Fractional IPV 2",
+      "dose_no": 2,
+      "target_days": 98,
+      "window_start": 98,
+      "window_end": 126,
+      "category": "14 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "PCV_2",
+      "name": "Pneumococcal 2",
+      "dose_no": 2,
+      "target_days": 98,
+      "window_start": 98,
+      "window_end": 126,
+      "category": "14 Weeks",
+      "mandatory": true
+    },
+    {
+      "code": "MR_1",
+      "name": "Measles-Rubella 1",
+      "dose_no": 1,
+      "target_days": 270,
+      "window_start": 270,
+      "window_end": 365,
+      "category": "9-12 Months",
+      "mandatory": true
+    },
+    {
+      "code": "JE_1",
+      "name": "Japanese Encephalitis 1",
+      "dose_no": 1,
+      "target_days": 270,
+      "window_start": 270,
+      "window_end": 365,
+      "category": "9-12 Months",
+      "mandatory": false
+    },
+    {
+      "code": "PCV_B",
+      "name": "PCV Booster",
+      "dose_no": 3,
+      "target_days": 270,
+      "window_start": 270,
+      "window_end": 365,
+      "category": "9-12 Months",
+      "mandatory": true
+    },
+    {
+      "code": "VITA_1",
+      "name": "Vitamin A Dose 1",
+      "dose_no": 1,
+      "target_days": 270,
+      "window_start": 270,
+      "window_end": 365,
+      "category": "9-12 Months",
+      "mandatory": true
+    },
+    {
+      "code": "MR_2",
+      "name": "Measles-Rubella 2",
+      "dose_no": 2,
+      "target_days": 480,
+      "window_start": 480,
+      "window_end": 730,
+      "category": "16-24 Months",
+      "mandatory": true
+    },
+    {
+      "code": "JE_2",
+      "name": "Japanese Encephalitis 2",
+      "dose_no": 2,
+      "target_days": 480,
+      "window_start": 480,
+      "window_end": 730,
+      "category": "16-24 Months",
+      "mandatory": false
+    },
+    {
+      "code": "DPT_B1",
+      "name": "DPT Booster 1",
+      "dose_no": 1,
+      "target_days": 480,
+      "window_start": 480,
+      "window_end": 730,
+      "category": "16-24 Months",
+      "mandatory": true
+    },
+    {
+      "code": "OPV_B",
+      "name": "OPV Booster",
+      "dose_no": 4,
+      "target_days": 480,
+      "window_start": 480,
+      "window_end": 730,
+      "category": "16-24 Months",
+      "mandatory": true
+    },
+    {
+      "code": "VITA_2",
+      "name": "Vitamin A Dose 2",
+      "dose_no": 2,
+      "target_days": 480,
+      "window_start": 480,
+      "window_end": 730,
+      "category": "16-24 Months",
+      "mandatory": true
+    },
+    {
+      "code": "DPT_B2",
+      "name": "DPT Booster 2",
+      "dose_no": 2,
+      "target_days": 1825,
+      "window_start": 1825,
+      "window_end": 2190,
+      "category": "5-6 Years",
+      "mandatory": true
+    }
+  ]
+}

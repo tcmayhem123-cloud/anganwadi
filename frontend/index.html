@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ACGMS — Anganwadi Child Growth Monitoring System</title>
+  
+  <!-- Tailwind CSS & Chart.js -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Custom CSS & Manifest -->
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1e3a8a">
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col">
+
+  <!-- Top Official Header (Government Brand Bar) -->
+  <header class="bg-blue-950 text-slate-300 text-xs py-1.5 px-4 border-b border-blue-900 flex justify-between items-center">
+    <div class="flex items-center gap-2">
+      <span class="inline-block w-2.5 h-2.5 rounded-full bg-orange-400"></span>
+      <span data-i18n="govt_header">Ministry of Women and Child Development | Government of Punjab</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="hidden sm:inline" data-i18n="district_title">Rupnagar District • ICDS Mission</span>
+      <!-- Language Selector -->
+      <div class="flex items-center gap-1.5 bg-blue-900/60 px-2 py-0.5 rounded border border-blue-800">
+        <span class="text-slate-400 text-[10px]">Lang:</span>
+        <select id="langSelect" onchange="setLanguage(this.value)" class="bg-transparent text-white text-xs font-semibold focus:outline-none cursor-pointer">
+          <option value="en" class="text-slate-900">English</option>
+          <option value="hi" class="text-slate-900">हिंदी (Hindi)</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation & Main App Bar -->
+  <nav class="bg-blue-900 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- App Title / Logo -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-extrabold text-xl shadow">
+            🌱
+          </div>
+          <div>
+            <h1 class="font-extrabold text-base sm:text-lg tracking-tight leading-none" data-i18n="app_title">
+              Anganwadi Child Growth Monitoring
+            </h1>
+            <p class="text-[11px] text-blue-200 mt-0.5">WHO Anthro Z-Score Engine & Malnutrition Surveillance (ACGMS)</p>
+          </div>
+        </div>
+
+        <!-- Role Switcher & Controls -->
+        <div class="flex items-center gap-3">
+          
+          <!-- Demo Role Switcher -->
+          <div class="hidden md:flex items-center gap-1.5 bg-blue-950/70 px-3 py-1.5 rounded-lg border border-blue-800">
+            <span class="text-xs text-blue-200" data-i18n="role">Role:</span>
+            <select id="demoUserSelector" onchange="app.loginUser(this.value)" class="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer">
+              <!-- populated by JS -->
+            </select>
+          </div>
+
+          <div id="currentUserBadge" class="hidden sm:block"></div>
+
+          <!-- Offline Simulation Toggle -->
+          <button id="offlineToggleBtn" onclick="app.toggleOfflineSimulation()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-200 text-slate-800 hover:bg-slate-300 transition-colors shadow-sm">
+            Simulate Offline Mode
+          </button>
+
+          <!-- Pending Sync Button -->
+          <button onclick="app.triggerSync()" id="syncBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm">
+            <span>🔄 Sync</span>
+            <span id="pendingSyncBadge" class="hidden px-1.5 py-0.2 rounded-full bg-red-500 text-white text-[10px]">0</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex space-x-1 sm:space-x-2 border-t border-blue-800/80 pt-1 pb-2 overflow-x-auto text-xs font-semibold">
+        <button onclick="app.switchView('dashboard')" data-view="dashboard" class="nav-link px-3 py-1.5 rounded-md text-white bg-blue-800 transition-all flex items-center gap-1.5">
+          📊 <span data-i18n="nav_dashboard">Dashboard</span>
+        </button>
+        <button onclick="app.switchView('children')" data-view="children" class="nav-link px-3 py-1.5 rounded-md text-blue-100 hover:bg-blue-800/50 transition-all flex items-center gap-1.5">
+          👶 <span data-i18n="nav_children">Children Directory</span>
+        </button>
+        <button onclick="app.switchView('alerts')" data-view="alerts" class="nav-link px-3 py-1.5 rounded-md text-blue-100 hover:bg-blue-800/50 transition-all flex items-center gap-1.5">
+          ⚠️ <span data-i18n="nav_alerts">Tasks & Alerts</span>
+        </button>
+        <button onclick="app.switchView('supervisor')" data-view="supervisor" class="nav-link px-3 py-1.5 rounded-md text-blue-100 hover:bg-blue-800/50 transition-all flex items-center gap-1.5">
+          📋 <span data-i18n="nav_supervisor">Supervisor Visits</span>
+        </button>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- Offline Status Alert Banner -->
+  <div id="offlineBanner" class="hidden bg-amber-500 text-slate-900 px-4 py-2 text-center text-xs font-bold flex items-center justify-center gap-2 shadow-inner">
+    <span>⚠️ OFFLINE MODE ACTIVE: Operating without server connection. All measurements and vaccine records are securely saved into local IndexedDB and will auto-sync when connection is restored.</span>
+  </div>
+
+  <!-- Main View Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- ============================================================== -->
+    <!-- VIEW 1: DASHBOARD                                              -->
+    <!-- ============================================================== -->
+    <section id="view-dashboard" class="view-section space-y-6">
+      
+      <!-- Top Actions Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-black text-slate-900 tracking-tight" data-i18n="nav_dashboard">ICDS Malnutrition Surveillance Dashboard</h2>
+          <p class="text-xs text-slate-500">Live nutritional classification following WHO Child Growth Standards & MoHFW UIP Schedule</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="/api/v1/exports/malnutrition?format=csv" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-sm flex items-center gap-1">
+            📥 <span data-i18n="export_csv">Export CSV</span>
+          </a>
+          <a href="/api/v1/exports/malnutrition?format=xlsx" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-sm flex items-center gap-1">
+            📊 <span data-i18n="export_excel">Export Excel</span>
+          </a>
+          <a href="/api/v1/exports/malnutrition?format=pdf" target="_blank" class="px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 shadow-sm flex items-center gap-1">
+            📄 <span data-i18n="export_pdf">Export PDF</span>
+          </a>
+          <a href="/api/v1/exports/poshan-tracker" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm flex items-center gap-1">
+            🇮🇳 <span data-i18n="export_poshan">Poshan Tracker CSV</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Hierarchical Drill-down & Demographic Filters (FR-DB-02, FR-DB-05) -->
+      <div class="p-3.5 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-3 text-xs">
+        <div class="flex items-center gap-1.5">
+          <span class="font-bold text-slate-500">Block:</span>
+          <select id="dashBlockFilter" onchange="app.onDashboardFilterChange()" class="px-2.5 py-1.5 border border-slate-200 rounded-lg font-semibold focus:outline-none cursor-pointer">
+            <option value="">All Blocks</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="font-bold text-slate-500">Sector:</span>
+          <select id="dashSectorFilter" onchange="app.onDashboardFilterChange()" class="px-2.5 py-1.5 border border-slate-200 rounded-lg font-semibold focus:outline-none cursor-pointer">
+            <option value="">All Sectors</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="font-bold text-slate-500">AWC:</span>
+          <select id="dashAwcFilter" onchange="app.onDashboardFilterChange()" class="px-2.5 py-1.5 border border-slate-200 rounded-lg font-semibold focus:outline-none cursor-pointer">
+            <option value="">All AWCs</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="font-bold text-slate-500">Age:</span>
+          <select id="dashAgeFilter" onchange="app.onDashboardFilterChange()" class="px-2.5 py-1.5 border border-slate-200 rounded-lg font-semibold focus:outline-none cursor-pointer">
+            <option value="">All Ages (0-72m)</option>
+            <option value="0-6">0 - 6 Months</option>
+            <option value="6-24">6 - 24 Months</option>
+            <option value="24-36">24 - 36 Months</option>
+            <option value="36-72">36 - 72 Months</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="font-bold text-slate-500">Sex:</span>
+          <select id="dashSexFilter" onchange="app.onDashboardFilterChange()" class="px-2.5 py-1.5 border border-slate-200 rounded-lg font-semibold focus:outline-none cursor-pointer">
+            <option value="">All Sexes</option>
+            <option value="M">Boys</option>
+            <option value="F">Girls</option>
+          </select>
+        </div>
+        <button onclick="app.resetDashboardFilters()" class="text-xs text-blue-600 hover:text-blue-800 font-bold ml-auto">
+          🔄 Reset Filters
+        </button>
+      </div>
+
+      <!-- KPI Summary Cards Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        
+        <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block" data-i18n="kpi_enrolled">Enrolled</span>
+          <span id="kpiEnrolled" class="text-2xl font-black text-slate-800 mt-1 block">0</span>
+          <span class="text-[11px] text-slate-400 mt-0.5 block">Total under 6y</span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block" data-i18n="kpi_measured">Measured</span>
+          <span id="kpiMeasured" class="text-2xl font-black text-slate-800 mt-1 block">0</span>
+          <span class="text-[11px] text-slate-400 mt-0.5 block">This Month</span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-red-50 border border-red-200 shadow-sm">
+          <span class="text-xs font-bold text-red-600 uppercase tracking-wider block" data-i18n="kpi_sam">SAM (Severe)</span>
+          <span id="kpiSAM" class="text-2xl font-black text-red-700 mt-1 block">0</span>
+          <span class="text-[11px] text-red-500 mt-0.5 block">WHZ &lt; -3 / Oedema</span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 shadow-sm">
+          <span class="text-xs font-bold text-amber-600 uppercase tracking-wider block" data-i18n="kpi_mam">MAM (Moderate)</span>
+          <span id="kpiMAM" class="text-2xl font-black text-amber-700 mt-1 block">0</span>
+          <span class="text-[11px] text-amber-500 mt-0.5 block">-3 &le; WHZ &lt; -2</span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-sky-50 border border-sky-200 shadow-sm">
+          <span class="text-xs font-bold text-sky-600 uppercase tracking-wider block" data-i18n="kpi_recovering">Recovering</span>
+          <span id="kpiRecovering" class="text-2xl font-black text-sky-700 mt-1 block">0</span>
+          <span class="text-[11px] text-sky-500 mt-0.5 block">SAM In Recovery</span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 shadow-sm">
+          <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider block" data-i18n="kpi_normal">Normal</span>
+          <span id="kpiNormal" class="text-2xl font-black text-emerald-700 mt-1 block">0</span>
+          <span class="text-[11px] text-emerald-500 mt-0.5 block">Healthy Growth</span>
+        </div>
+
+      </div>
+
+      <!-- Secondary KPIs (Underweight, Stunted, Visits, Adherence) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div class="p-3.5 rounded-xl bg-white border border-slate-200">
+          <span class="text-xs font-semibold text-slate-500" data-i18n="kpi_underweight">Underweight Prevalence</span>
+          <span id="kpiUnderweight" class="text-xl font-bold text-slate-800 mt-1 block">0</span>
+        </div>
+        <div class="p-3.5 rounded-xl bg-white border border-slate-200">
+          <span class="text-xs font-semibold text-slate-500" data-i18n="kpi_stunted">Stunting Prevalence</span>
+          <span id="kpiStunted" class="text-xl font-bold text-slate-800 mt-1 block">0</span>
+        </div>
+        <div class="p-3.5 rounded-xl bg-white border border-slate-200">
+          <span class="text-xs font-semibold text-slate-500" data-i18n="kpi_visit_cov">LS Visit Coverage</span>
+          <span id="kpiVisitCoverage" class="text-xl font-bold text-slate-800 mt-1 block">0</span>
+        </div>
+        <div class="p-3.5 rounded-xl bg-white border border-slate-200">
+          <span class="text-xs font-semibold text-slate-500" data-i18n="kpi_immu_adh">UIP Vaccination Adherence</span>
+          <span id="kpiAdherence" class="text-xl font-bold text-slate-800 mt-1 block">0%</span>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Malnutrition Doughnut Chart -->
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col">
+          <h3 class="font-extrabold text-sm text-slate-900 mb-3" data-i18n="chart_malnutrition_dist">Nutritional Status Distribution</h3>
+          <div class="relative flex-1 min-h-[220px]">
+            <canvas id="malnutritionDistChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 6-Month Trend Line Chart -->
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm lg:col-span-2 flex flex-col">
+          <h3 class="font-extrabold text-sm text-slate-900 mb-3" data-i18n="chart_trends">Month-on-Month Trends (Past 6 Months)</h3>
+          <div class="relative flex-1 min-h-[220px]">
+            <canvas id="momTrendChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Ranked AWCs Table (FR-DB-03) -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-slate-900 text-sm" data-i18n="ranked_awcs_title">High Priority AWCs (Ranked by SAM Prevalence)</h3>
+            <p class="text-xs text-slate-400">Centers needing supervisory intervention and targeted supplementary nutrition</p>
+          </div>
+          <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">Live Assessment</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider">
+              <tr>
+                <th class="px-4 py-3" data-i18n="awc_name">AWC Name</th>
+                <th class="px-4 py-3" data-i18n="village">Village / Sector</th>
+                <th class="px-4 py-3 text-center">Enrolled</th>
+                <th class="px-4 py-3 text-center" data-i18n="kpi_coverage">Monthly Coverage</th>
+                <th class="px-4 py-3 text-center" data-i18n="kpi_sam">SAM Count (%)</th>
+                <th class="px-4 py-3 text-center" data-i18n="kpi_mam">MAM Count</th>
+              </tr>
+            </thead>
+            <tbody id="rankedAwcsTableBody">
+              <!-- populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 2: CHILDREN DIRECTORY                                     -->
+    <!-- ============================================================== -->
+    <section id="view-children" class="view-section space-y-4 hidden">
+      
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-black text-slate-900 tracking-tight" data-i18n="nav_children">Beneficiary Children Directory</h2>
+          <p class="text-xs text-slate-500">Track monthly measurements, view WHO growth curves, and record immunisations</p>
+        </div>
+        <button onclick="app.openRegisterChildModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow flex items-center gap-1.5 self-start sm:self-auto">
+          <span>+</span> <span data-i18n="register_child">Register New Child</span>
+        </button>
+      </div>
+
+      <!-- Filters Row -->
+      <div class="p-3.5 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-3">
+        <div class="relative flex-1 w-full">
+          <input type="text" id="childSearchInput" oninput="app.loadChildren()" placeholder="Search by child name, ID, or mother..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-blue-500">
+          <span class="absolute left-3 top-2.5 text-slate-400 text-xs">🔍</span>
+        </div>
+        <div class="flex items-center gap-2 w-full md:w-auto">
+          <select id="childStateFilter" onchange="app.loadChildren()" class="px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none cursor-pointer">
+            <option value="" data-i18n="filter_all">All Nutritional Statuses</option>
+            <option value="Normal">Normal</option>
+            <option value="MAM">MAM (Moderate)</option>
+            <option value="SAM">SAM (Severe)</option>
+            <option value="Recovering">Recovering</option>
+          </select>
+          <select id="childAgeFilter" onchange="app.loadChildren()" class="px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none cursor-pointer">
+            <option value="" data-i18n="filter_age">All Ages (0-72m)</option>
+            <option value="0-6">0 - 6 Months</option>
+            <option value="6-24">6 - 24 Months</option>
+            <option value="24-36">24 - 36 Months</option>
+            <option value="36-72">36 - 72 Months</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Children Table -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+              <tr>
+                <th class="px-4 py-3" data-i18n="child_name">Child Name & ID</th>
+                <th class="px-4 py-3 text-center" data-i18n="gender">Sex</th>
+                <th class="px-4 py-3" data-i18n="age">Age</th>
+                <th class="px-4 py-3" data-i18n="guardian">Mother / Guardian</th>
+                <th class="px-4 py-3 text-center" data-i18n="current_nutr_status">Nutritional Status</th>
+                <th class="px-4 py-3 text-center">Lifecycle</th>
+                <th class="px-4 py-3 text-right" data-i18n="actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="childrenTableBody">
+              <!-- populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 3: TASKS & ALERTS                                         -->
+    <!-- ============================================================== -->
+    <section id="view-alerts" class="view-section space-y-4 hidden">
+      <div>
+        <h2 class="text-2xl font-black text-slate-900 tracking-tight" data-i18n="alerts_title">Tasks & Urgent Alerts</h2>
+        <p class="text-xs text-slate-500">SAM diagnoses, MAM transitions, overdue immunisations, and supervisor escalations</p>
+      </div>
+
+      <div id="alertsListContainer" class="space-y-3">
+        <!-- populated by JS -->
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 4: SUPERVISOR VISITS                                      -->
+    <!-- ============================================================== -->
+    <section id="view-supervisor" class="view-section space-y-6 hidden">
+      
+      <div>
+        <h2 class="text-2xl font-black text-slate-900 tracking-tight" data-i18n="super_title">Lady Supervisor AWC Inspection & Monitoring</h2>
+        <p class="text-xs text-slate-500">Auto-populated AWC statistics, 5-point quality checklist, action items, and PDF report generation</p>
+      </div>
+
+      <!-- Live AWC Snapshot Card (FR-SV-03) -->
+      <div class="p-5 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-900 text-white shadow">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span class="text-xs text-blue-200 uppercase tracking-wider font-bold block">Target Inspection Centre</span>
+            <h3 id="visitAwcName" class="text-xl font-black mt-0.5">Rampur Anganwadi Centre</h3>
+          </div>
+          <div class="flex items-center gap-2 bg-blue-950/70 px-3 py-1.5 rounded-xl border border-blue-700">
+            <span class="text-xs text-blue-200 font-bold">Select Centre:</span>
+            <select id="supervisorAwcSelector" onchange="app.changeSupervisorAwc(this.value)" class="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer">
+              <!-- populated by JS -->
+            </select>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-blue-800 text-center">
+          <div>
+            <span class="text-xs text-blue-200 block">Total Enrolled</span>
+            <span id="visitEnrolled" class="text-xl font-extrabold">0</span>
+          </div>
+          <div>
+            <span class="text-xs text-blue-200 block">Measured (Coverage)</span>
+            <span id="visitMeasured" class="text-xl font-extrabold">0</span>
+          </div>
+          <div>
+            <span class="text-xs text-red-300 block">SAM Children</span>
+            <span id="visitSAM" class="text-xl font-extrabold text-red-300">0</span>
+          </div>
+          <div>
+            <span class="text-xs text-amber-300 block">MAM Children</span>
+            <span id="visitMAM" class="text-xl font-extrabold text-amber-300">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inspection Form Card -->
+      <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+        <h3 class="font-extrabold text-sm text-slate-900" data-i18n="checklist_title">5-Point Structured Checklist</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Date of Visit</label>
+            <input type="date" id="visitDate" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Children Attendance Today</label>
+            <input type="number" id="visitAttendance" value="18" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="register_upkeep">Register Upkeep & Completeness (1-5)</label>
+            <select id="visitRegisterScore" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+              <option value="5">⭐⭐⭐⭐⭐ Excellent (Up to date)</option>
+              <option value="4">⭐⭐⭐⭐ Good</option>
+              <option value="3">⭐⭐⭐ Fair (Minor gaps)</option>
+              <option value="2">⭐⭐ Deficient</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="cleanliness">AWC Cleanliness & Drinking Water (1-5)</label>
+            <select id="visitCleanlinessScore" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+              <option value="5">⭐⭐⭐⭐⭐ Clean & Safe water</option>
+              <option value="4">⭐⭐⭐⭐ Satisfactory</option>
+              <option value="3">⭐⭐⭐ Needs improvement</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 pt-2 text-xs font-semibold">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="visitEquipmentCalib" checked class="w-4 h-4 rounded text-blue-600">
+            <span data-i18n="equipment_calib">Equipment Functional & Calibrated (Baby scale, board, tape)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="visitTHRDelivered" checked class="w-4 h-4 rounded text-blue-600">
+            <span data-i18n="thr_delivery">Supplementary Nutrition Delivered</span>
+          </label>
+        </div>
+
+        <div>
+          <label class="font-bold text-slate-700 text-xs block mb-1" data-i18n="observations">Supervisor Observations & Field Notes</label>
+          <textarea id="visitObservations" rows="2" placeholder="Record observations, maternal counselling given, or equipment status..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs"></textarea>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <button onclick="app.saveSupervisorInspection()" class="px-5 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs shadow">
+            Submit Inspection Report & Generate PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Past Inspection Reports History -->
+      <div class="space-y-3">
+        <h3 class="font-extrabold text-sm text-slate-900">Historical Inspection Reports</h3>
+        <div id="visitsHistoryContainer" class="space-y-3">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: GROWTH MEASUREMENT & LIVE Z-SCORE                       -->
+  <!-- ============================================================== -->
+  <div id="measurementModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 my-8">
+      
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div>
+          <h3 class="font-black text-slate-900 text-base" data-i18n="meas_modal_title">Record Monthly Growth Measurement</h3>
+          <p id="measChildName" class="text-xs text-blue-600 font-bold mt-0.5">Child Details</p>
+        </div>
+        <button onclick="app.closeMeasurementModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+
+      <input type="hidden" id="measChildId">
+
+      <div class="space-y-4 text-xs">
+        
+        <div>
+          <label class="font-bold text-slate-700 block mb-1" data-i18n="meas_date">Measurement Date</label>
+          <input type="date" id="measDate" onchange="app.updateLiveMeasurementPreview()" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="weight_kg">Weight (kg, 0.1 precision)</label>
+            <input type="number" step="0.1" id="measWeight" oninput="app.updateLiveMeasurementPreview()" placeholder="e.g. 8.4" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-bold text-sm">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="height_cm">Height / Length (cm)</label>
+            <input type="number" step="0.1" id="measHeight" oninput="app.updateLiveMeasurementPreview()" placeholder="e.g. 74.5" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-bold text-sm">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="posture">Posture</label>
+            <select id="measPosture" onchange="app.updateLiveMeasurementPreview()" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-semibold">
+              <option value="RECUMBENT" data-i18n="lying_down">Lying Down (Recumbent)</option>
+              <option value="STANDING" data-i18n="standing_up">Standing (Height)</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="muac_cm">MUAC Tape (cm)</label>
+            <input type="number" step="0.1" id="measMUAC" oninput="app.updateLiveMeasurementPreview()" placeholder="e.g. 13.2" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+          </div>
+        </div>
+
+        <div>
+          <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-700">
+            <input type="checkbox" id="measOedema" onchange="app.updateLiveMeasurementPreview()" class="w-4 h-4 text-red-600 rounded">
+            <span>Bilateral Pitting Oedema Present (Fluid Retention)</span>
+          </label>
+          <span class="text-[10px] text-slate-400 block ml-6">Presence of pitting oedema on both feet immediately triggers SAM classification.</span>
+        </div>
+
+        <!-- Posture notice banner -->
+        <div id="previewPostureCorrection" class="hidden p-2 rounded bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold">
+          <!-- populated by JS -->
+        </div>
+
+        <!-- Implausible z-score warning box (FR-GM-05) -->
+        <div id="implausibleWarningBox" class="hidden p-3 rounded-xl bg-red-50 border border-red-300 text-red-800 space-y-2">
+          <div class="font-bold text-xs flex items-center gap-1.5">
+            <span>⚠️ Implausible Z-Score Warning:</span>
+          </div>
+          <p id="implausibleReason" class="text-[11px]"></p>
+          <label class="flex items-center gap-2 cursor-pointer pt-1 font-semibold text-xs">
+            <input type="checkbox" id="measConfirmImplausible" class="w-4 h-4 text-red-600 rounded">
+            <span>I have re-checked measurements and confirm these extreme values are accurate.</span>
+          </label>
+        </div>
+
+        <!-- Live Z-Score Assessment Box -->
+        <div class="p-4 rounded-xl bg-slate-100 border border-slate-200 space-y-2">
+          <span class="text-xs font-bold text-slate-700 uppercase tracking-wider block" data-i18n="live_preview">WHO Z-Score Live Assessment</span>
+          
+          <div class="grid grid-cols-3 gap-2 text-center pt-1">
+            <div class="p-2 bg-white rounded-lg border border-slate-200">
+              <span class="text-[10px] text-slate-400 block font-bold">WHZ (Acute)</span>
+              <span id="previewWHZ" class="text-base font-black text-slate-800">--</span>
+            </div>
+            <div class="p-2 bg-white rounded-lg border border-slate-200">
+              <span class="text-[10px] text-slate-400 block font-bold">WAZ (Weight)</span>
+              <span id="previewWAZ" class="text-base font-black text-slate-800">--</span>
+            </div>
+            <div class="p-2 bg-white rounded-lg border border-slate-200">
+              <span class="text-[10px] text-slate-400 block font-bold">HAZ (Stunting)</span>
+              <span id="previewHAZ" class="text-base font-black text-slate-800">--</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-slate-200">
+            <span class="font-bold text-slate-600 text-xs" data-i18n="classification">Classification:</span>
+            <span id="previewClassBadge" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-700">
+              Awaiting input
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="flex justify-end gap-2 mt-6 pt-3 border-t border-slate-100">
+        <button onclick="app.closeMeasurementModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold">
+          Cancel
+        </button>
+        <button onclick="app.saveMeasurement()" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow" data-i18n="save_measurement">
+          Save Measurement
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: REGISTER CHILD                                          -->
+  <!-- ============================================================== -->
+  <div id="registerChildModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 my-8">
+      
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <h3 class="font-black text-slate-900 text-base" data-i18n="modal_reg_title">Register New Beneficiary Child</h3>
+        <button onclick="app.closeRegisterChildModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1" data-i18n="child_name">Child Full Name *</label>
+          <input type="text" id="regName" placeholder="e.g. Jasleen Kaur" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-semibold">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="gender">Sex *</label>
+            <select id="regSex" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-semibold">
+              <option value="F">Girl (बालिका)</option>
+              <option value="M">Boy (बालक)</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="dob">Date of Birth (Under 6y) *</label>
+            <input type="date" id="regDob" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-semibold">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="guardian">Mother / Guardian Name *</label>
+            <input type="text" id="regGuardian" placeholder="e.g. Balwinder Kaur" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="relationship">Relationship</label>
+            <select id="regRelationship" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+              <option value="Mother">Mother (माता)</option>
+              <option value="Father">Father (पिता)</option>
+              <option value="Grandmother">Grandmother (दादी/नानी)</option>
+              <option value="Guardian">Legal Guardian</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="village">Village / Address *</label>
+            <input type="text" id="regVillage" value="Rampur" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1" data-i18n="mobile_no">Mobile Number</label>
+            <input type="tel" id="regMobile" placeholder="e.g. 9876543210" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+          </div>
+        </div>
+
+        <div>
+          <label class="font-bold text-slate-700 block mb-1" data-i18n="birth_weight">Birth Weight (kg, optional)</label>
+          <input type="number" step="0.1" id="regBirthWeight" placeholder="e.g. 2.9" class="w-full px-3 py-2 border border-slate-200 rounded-lg">
+        </div>
+
+        <div>
+          <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+            <input type="checkbox" id="regConsent" checked class="w-4 h-4 text-blue-600 rounded">
+            <span data-i18n="dpdp_consent">Guardian consents to healthcare notifications (DPDP Act 2023 compliant)</span>
+          </label>
+        </div>
+
+      </div>
+
+      <div class="flex justify-end gap-2 mt-6 pt-3 border-t border-slate-100">
+        <button onclick="app.closeRegisterChildModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold">
+          Cancel
+        </button>
+        <button onclick="app.saveChildRegistration()" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow" data-i18n="save_child">
+          Register Child
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: WHO INTERACTIVE GROWTH CHART                            -->
+  <!-- ============================================================== -->
+  <div id="growthChartModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-slate-100 my-8">
+      
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div>
+          <h3 class="font-black text-slate-900 text-base" data-i18n="view_chart">WHO Child Growth Standards Chart</h3>
+          <p id="chartModalChildName" class="text-xs text-blue-600 font-bold mt-0.5">Child Details</p>
+        </div>
+        <button onclick="app.closeGrowthChartModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+
+      <!-- Standard Indicator Tabs (FR-GM-08) -->
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <button id="chartTabWFA" onclick="app.switchGrowthChartIndicator('WFA')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm transition-all">
+          ⚖️ Weight-for-Age (WAZ)
+        </button>
+        <button id="chartTabHFA" onclick="app.switchGrowthChartIndicator('HFA')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all">
+          📏 Length/Height-for-Age (HAZ - Stunting)
+        </button>
+        <button id="chartTabWFH" onclick="app.switchGrowthChartIndicator('WFH')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all">
+          📊 Weight-for-Height (WHZ - Wasting)
+        </button>
+      </div>
+
+      <div class="relative w-full h-[450px]">
+        <canvas id="whoGrowthChartCanvas"></canvas>
+      </div>
+
+      <div class="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+        <span>Curved lines represent official WHO percentile distributions (-3SD, -2SD, Median, +2SD, +3SD).</span>
+        <button onclick="app.closeGrowthChartModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-white font-bold">
+          Close Chart
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: DIGITAL IMMUNISATION CARD                               -->
+  <!-- ============================================================== -->
+  <div id="immunisationModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 my-8">
+      
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div>
+          <h3 class="font-black text-slate-900 text-base" data-i18n="view_immunisation">Digital Immunisation Card (UIP Schedule)</h3>
+          <p id="immuChildName" class="text-xs text-blue-600 font-bold mt-0.5">Child Details</p>
+        </div>
+        <button onclick="app.closeImmunisationModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+
+      <!-- Adherence Bar -->
+      <div class="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+        <div class="flex justify-between text-xs font-bold text-slate-700 mb-1">
+          <span>Universal Immunisation Adherence:</span>
+          <span id="immuAdherenceText" class="text-blue-700">100%</span>
+        </div>
+        <div class="w-full h-3 rounded-full bg-slate-200 overflow-hidden">
+          <div id="immuAdherenceBar" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <div id="immuDosesContainer" class="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+        <!-- populated by JS -->
+      </div>
+
+      <div class="flex justify-end mt-4 pt-3 border-t border-slate-100">
+        <button onclick="app.closeImmunisationModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-white text-xs font-bold">
+          Close Card
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: ACKNOWLEDGE ALERT                                       -->
+  <!-- ============================================================== -->
+  <div id="acknowledgeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 my-8">
+      
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <h3 class="font-black text-slate-900 text-base" data-i18n="resolve_alert">Take Action & Resolve Alert</h3>
+        <button onclick="app.closeAcknowledgeModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+
+      <p id="ackAlertDesc" class="text-xs text-slate-600 font-medium mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200"></p>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Action Taken *</label>
+          <select id="ackActionSelect" class="w-full px-3 py-2 border border-slate-200 rounded-lg font-semibold">
+            <option value="Referred to Nutrition Rehabilitation Centre (NRC)">Referred to NRC / Civil Hospital</option>
+            <option value="Maternal Counselling & Supplementary THR Provided">Maternal Counselling & Extra Take-Home Ration Provided</option>
+            <option value="Home Visit Conducted & Health Checkup Done">Home Visit Conducted & Health Checkup Done</option>
+            <option value="Vaccination Administered on Mobilization Day">Vaccination Administered on Mobilization Day</option>
+            <option value="Supervisor Review Completed">Supervisor Review Completed</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="font-bold text-slate-700 block mb-1" data-i18n="action_notes">Additional Notes</label>
+          <textarea id="ackNotes" rows="3" placeholder="Enter clinical notes, guardian counselled, or date of next checkup..." class="w-full px-3 py-2 border border-slate-200 rounded-lg"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5 pt-3 border-t border-slate-100">
+        <button onclick="app.closeAcknowledgeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold">
+          Cancel
+        </button>
+        <button onclick="app.submitAcknowledgeAlert()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow">
+          Resolve Alert
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: CHILD MEASUREMENT HISTORY & 7-DAY CORRECTION (FR-GM-06) -->
+  <!-- ============================================================== -->
+  <div id="childHistoryModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 my-8">
+      
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div>
+          <h3 class="font-black text-slate-900 text-base">Longitudinal Growth History & 7-Day Correction</h3>
+          <p id="historyChildName" class="text-xs text-blue-600 font-bold mt-0.5">Child Details</p>
+        </div>
+        <button onclick="app.closeChildHistoryModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+
+      <!-- History Table -->
+      <div class="overflow-x-auto max-h-64 border border-slate-200 rounded-xl mb-4">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider sticky top-0">
+            <tr>
+              <th class="px-3 py-2">Date</th>
+              <th class="px-3 py-2">Age</th>
+              <th class="px-3 py-2">Weight</th>
+              <th class="px-3 py-2">Height</th>
+              <th class="px-3 py-2">MUAC</th>
+              <th class="px-3 py-2 text-center">WHZ</th>
+              <th class="px-3 py-2 text-center">WAZ</th>
+              <th class="px-3 py-2 text-center">HAZ</th>
+              <th class="px-3 py-2 text-center">Class</th>
+              <th class="px-3 py-2 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <!-- populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Correction Panel (Hidden until Correct clicked) -->
+      <div id="correctionFormPanel" class="hidden p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-3">
+        <div class="flex items-center justify-between border-b border-amber-200 pb-2">
+          <h4 class="font-bold text-amber-900 text-xs">⚠️ Correct Measurement (Within 7-Day Window — All Changes Audited)</h4>
+          <button onclick="app.cancelCorrection()" class="text-amber-700 text-xs font-bold hover:underline">Cancel</button>
+        </div>
+        <input type="hidden" id="corrMeasId">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Correct Weight (kg) *</label>
+            <input type="number" step="0.1" id="corrWeight" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-bold">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Correct Height (cm) *</label>
+            <input type="number" step="0.1" id="corrHeight" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-bold">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Posture</label>
+            <select id="corrPosture" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg">
+              <option value="RECUMBENT">Lying (Recumbent)</option>
+              <option value="STANDING">Standing (Height)</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">MUAC (cm)</label>
+            <input type="number" step="0.1" id="corrMUAC" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg">
+          </div>
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 text-xs block mb-1">Mandatory Reason for Correction *</label>
+          <input type="text" id="corrReason" placeholder="e.g. Typo in manual scale reading, confirmed on calibrated baby board..." class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs">
+        </div>
+        <div class="flex justify-end pt-1">
+          <button onclick="app.submitMeasurementCorrection()" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow">
+            Save Audited Correction & Replay State History
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-4 pt-3 border-t border-slate-100">
+        <button onclick="app.closeChildHistoryModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-white text-xs font-bold">
+          Close History
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: TRANSFER CHILD TO ANOTHER AWC (FR-REG-04)               -->
+  <!-- ============================================================== -->
+  <div id="transferChildModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 my-8">
+      
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div>
+          <h3 class="font-black text-slate-900 text-base">Transfer Child Between AWCs</h3>
+          <p id="transferChildName" class="text-xs text-blue-600 font-bold mt-0.5">Child Details</p>
+        </div>
+        <button onclick="app.closeTransferChildModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+
+      <input type="hidden" id="transferChildId">
+      <div class="space-y-3.5 text-xs">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Current Anganwadi Centre</label>
+          <input type="text" id="transferCurrentAwc" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-600 font-semibold">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Target Anganwadi Centre *</label>
+          <select id="transferTargetAwc" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-semibold">
+            <!-- populated by JS -->
+          </select>
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Reason for Transfer *</label>
+          <input type="text" id="transferReason" placeholder="e.g. Family moved to maternal village / relocation..." class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5 pt-3 border-t border-slate-100">
+        <button onclick="app.closeTransferChildModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold">
+          Cancel
+        </button>
+        <button onclick="app.submitChildTransfer()" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow">
+          Confirm Transfer
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: UPDATE BENEFICIARY LIFECYCLE STATUS (FR-REG-05)         -->
+  <!-- ============================================================== -->
+  <div id="childStatusModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 my-8">
+      
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div>
+          <h3 class="font-black text-slate-900 text-base">Beneficiary Lifecycle Status</h3>
+          <p id="statusChildName" class="text-xs text-blue-600 font-bold mt-0.5">Child Details</p>
+        </div>
+        <button onclick="app.closeChildStatusModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+
+      <input type="hidden" id="statusChildId">
+      <div class="space-y-3.5 text-xs">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Status Transition *</label>
+          <select id="childNewStatus" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-semibold">
+            <option value="ACTIVE">ACTIVE — Currently Enrolled & Receiving Services</option>
+            <option value="MIGRATED">MIGRATED — Beneficiary relocated outside catchment</option>
+            <option value="DECEASED">DECEASED — Child expired</option>
+            <option value="INACTIVE">INACTIVE — Long-term uncontactable / temporary pause</option>
+          </select>
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Effective Date</label>
+          <input type="date" id="childStatusDate" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-semibold">
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Reason / Case Notes *</label>
+          <textarea id="childStatusReason" rows="2" placeholder="Record reason for migration, medical cause, or caregiver remarks..." class="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-5 pt-3 border-t border-slate-100">
+        <button onclick="app.closeChildStatusModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold">
+          Cancel
+        </button>
+        <button onclick="app.submitChildStatusUpdate()" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow">
+          Update Status
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- Application Scripts -->
+  <script src="/js/i18n.js"></script>
+  <script src="/js/offline_db.js"></script>
+  <script src="/js/growth_chart.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
