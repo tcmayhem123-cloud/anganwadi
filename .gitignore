@@ -1,26 +1,31 @@
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.Python
+venv/
+.venv/
+env/
+ENV/
 .pytest_cache/
 .coverage
 htmlcov/
+*.egg-info/
+dist/
+build/
 
-# Environments
-.venv/
-venv/
-ENV/
-env/
-
-# SQLite databases (generated at runtime)
+# Database
 *.db
+*.sqlite
 *.sqlite3
 
-# OS generated
-.DS_Store
-Thumbs.db
+# Environment & Secrets
+.env
+.env.local
 
-# IDE & Editor
+# IDE & OS
 .vscode/
 .idea/
+.DS_Store
+Thumbs.db
